@@ -30,20 +30,23 @@ module.exports.showListing = async (req,res)=> {
 };
 
 module.exports.createListing = async (req, res, next) => {
-
     try {
 
         const newListing = new Listing(req.body.listing);
 
         const fullAddress =
-        `${req.body.listing.location}, ${req.body.listing.country}`;
+            `${req.body.listing.location}, ${req.body.listing.country}`;
+
+        // Default coordinates
+        newListing.geometry = {
+            type: "Point",
+            coordinates: [78.4867, 17.3850]
+        };
 
         try {
-
             const result = await geocoder.geocode(fullAddress);
 
-            if(result.length > 0){
-
+            if (result && result.length > 0) {
                 newListing.geometry = {
                     type: "Point",
                     coordinates: [
@@ -51,29 +54,13 @@ module.exports.createListing = async (req, res, next) => {
                         result[0].latitude
                     ]
                 };
-
-            } else {
-
-                newListing.geometry = {
-                    type: "Point",
-                    coordinates: [78.4867,17.3850]
-                };
-
             }
-
-        } catch(err){
-
-            console.log(err);
-
-            newListing.geometry = {
-                type: "Point",
-                coordinates: [78.4867,17.3850]
-            };
-
+        } catch (err) {
+            console.log("Geocoder Error:", err);
         }
 
-        // Image upload check
-        if(req.file){
+        // safer image handling
+        if (req.file) {
             newListing.image = {
                 url: req.file.path,
                 filename: req.file.filename
@@ -86,9 +73,10 @@ module.exports.createListing = async (req, res, next) => {
 
         req.flash("success", "New Listing Created!");
 
-        return res.redirect("/listings");
+        res.redirect("/listings");
 
-    } catch(err){
+    } catch (err) {
+        console.log("Create Listing Error:", err);
         next(err);
     }
 };
